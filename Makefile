@@ -2,7 +2,8 @@
 
 help:
 	@echo "Available targets:"
-	@echo "  make build-programs  - Compile guest programs for RISC-V (risc0)"
+	@echo "  make build - Compile guest programs"
+	@echo "  make test  - Run all the tests in the /tests folder"
 
 build-programs:
 	rm -rf programs/.deps/nssa_core
