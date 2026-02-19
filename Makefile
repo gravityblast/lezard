@@ -11,3 +11,7 @@ build-programs:
 	cd programs && cargo generate-lockfile
 	CARGO_TARGET_DIR=target cargo risczero build --manifest-path programs/Cargo.toml
 	rm -rf programs/.deps/nssa_core
+
+test:
+	# RISC0_DEV_MODE=1 RUST_LOG=info cargo test --release --test double_test
+	RISC0_DEV_MODE=1 RUST_LOG=info cargo test --release
