@@ -1,6 +1,3 @@
-[workspace]
-resolver = "3"
-
 [package]
 name = "lezard"
 version = "0.1.0"
