@@ -1,0 +1,27 @@
+[workspace]
+resolver = "3"
+members = ["programs"]
+
+[package]
+name = "lezard"
+version = "0.1.0"
+
+[dependencies]
+nssa = { path = "../lssa/nssa" }
+nssa_core = { path = "../lssa/nssa/core", features = ["host"] }
+common = { path = "../lssa/common" }
+sequencer_runner = { path = "../lssa/sequencer_runner", features = ["standalone"] }
+sequencer_core = { path = "../lssa/sequencer_core", features = ["mock", "testnet"] }
+indexer_core = { path = "../lssa/indexer/core" }
+
+tokio = { version = "1.28.2", features = ["net", "rt-multi-thread", "sync", "fs", "time"] }
+tempfile = "3.14.0"
+anyhow = "1.0.98"
+url = { version = "2.5.4", features = ["serde"] }
+env_logger = "0.10"
+log = "0.4.28"
+serde = { version = "1.0.60", default-features = false, features = ["derive"] }
+clap = { version = "4.5.42", features = ["derive", "env"] }
+
+[dev-dependencies]
+tokio = { version = "1.28.2", features = ["rt-multi-thread", "macros"] }
