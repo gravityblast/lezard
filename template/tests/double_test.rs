@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use anyhow::Result;
 use lezard::{DEFAULT_PROGRAM_ID, deploy_program, get_account, send_unsigned_tx, wait_for_block};
 
@@ -19,8 +17,7 @@ async fn double_program() -> Result<()> {
     assert!(account.data.is_empty());
 
     // Deploy the double program
-    let elf_path = PathBuf::from("target/riscv32im-risc0-zkvm-elf/docker/double.bin");
-    let program_id = deploy_program(&ctx.client, &elf_path).await?;
+    let program_id = deploy_program(&ctx.client, "double").await?;
     wait_for_block(&ctx.client).await?;
 
     // First call: empty -> 1

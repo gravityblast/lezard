@@ -98,14 +98,13 @@ pub async fn start_sequencer() -> Result<LezardContext> {
     })
 }
 
-/// Reads an ELF binary from disk and deploys it to the sequencer.
+/// Deploys a guest program to the sequencer by name.
+/// The name corresponds to the binary name in `programs/src/bin/` (e.g. `"double"`).
 /// Returns the `ProgramId` assigned to the deployed program.
-pub async fn deploy_program(client: &SequencerClient, elf_path: &PathBuf) -> Result<ProgramId> {
-    let elf_path = if elf_path.is_relative() {
-        std::env::current_dir()?.join(elf_path)
-    } else {
-        elf_path.clone()
-    };
+pub async fn deploy_program(client: &SequencerClient, name: &str) -> Result<ProgramId> {
+    let elf_path = std::env::current_dir()?
+        .join("target/riscv32im-risc0-zkvm-elf/docker")
+        .join(format!("{name}.bin"));
 
     let bytecode = std::fs::read(&elf_path)
         .with_context(|| format!("Failed to read ELF binary at {}", elf_path.display()))?;
