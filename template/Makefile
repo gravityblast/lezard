@@ -14,4 +14,4 @@ build:
 	rm -rf programs/.deps/nssa_core
 
 test:
-	RISC0_DEV_MODE=1 RUST_LOG=info cargo test --release
+	RISC0_DEV_MODE=1 RUST_LOG="warn,lezard=info" cargo test --release
