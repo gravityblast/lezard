@@ -1,4 +1,4 @@
-use std::{path::PathBuf, time::Duration};
+use std::time::Duration;
 
 use anyhow::{Context, Result};
 use common::sequencer_client::SequencerClient;
