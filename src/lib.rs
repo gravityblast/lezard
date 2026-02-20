@@ -17,11 +17,31 @@ pub use nssa::{
 };
 pub use nssa_core::program::{DEFAULT_PROGRAM_ID, ProgramId};
 
+/// Initializes logging and starts a local sequencer.
+/// For now it must be the first call in every `#[tokio::test]`.
+///
+/// Logging defaults to `warn,lezard=info` so only framework messages show.
+/// Override with `RUST_LOG=debug` (or `RUST_LOG=info`) for full output.
+///
+/// Uses `try_init()` so multiple tests in the same process don't panic.
+pub async fn test_setup() -> Result<LezardContext> {
+    let _ = env_logger::builder()
+        .parse_env(env_logger::Env::default().default_filter_or("warn,lezard=info"))
+        .try_init();
+    start_sequencer(2000).await
+}
+
+/// Number of pre-generated accounts in `LezardContext::accounts`.
+const NUM_ACCOUNTS: usize = 10;
+
 /// Bundles a running sequencer with its client and temp storage.
 pub struct LezardContext {
     pub handle: SequencerHandle,
     pub client: SequencerClient,
     pub block_timeout_ms: u64,
+    /// 10 pre-generated account IDs, ready to use in tests.
+    /// `accounts[0]` = `[1; 32]`, `accounts[1]` = `[2; 32]`, ..., `accounts[9]` = `[10; 32]`.
+    pub accounts: [AccountId; NUM_ACCOUNTS],
     _tmp_dir: tempfile::TempDir,
 }
 
@@ -63,10 +83,13 @@ pub async fn start_sequencer(block_timeout_ms: u64) -> Result<LezardContext> {
     let url: Url = format!("http://127.0.0.1:{}", addr.port()).parse()?;
     let client = SequencerClient::new(url)?;
 
+    let accounts = std::array::from_fn(|i| AccountId::new([(i + 1) as u8; 32]));
+
     Ok(LezardContext {
         handle,
         client,
         block_timeout_ms,
+        accounts,
         _tmp_dir: tmp_dir,
     })
 }
