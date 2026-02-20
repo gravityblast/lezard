@@ -17,6 +17,15 @@ pub use nssa::{
 };
 pub use nssa_core::program::{DEFAULT_PROGRAM_ID, ProgramId};
 
+/// Sequencer block time in milliseconds
+const BLOCK_TIME_MS: u64 = 200;
+
+/// The milliseconds to wait for the next block in wait_for_block before timing out.
+const NEXT_BLOCK_TIMEOUT_MS: u64 = 2000;
+
+/// Number of pre-generated accounts in `LezardContext::accounts`.
+const NUM_ACCOUNTS: usize = 10;
+
 /// Initializes logging and starts a local sequencer.
 /// For now it must be the first call in every `#[tokio::test]`.
 ///
@@ -28,17 +37,13 @@ pub async fn test_setup() -> Result<LezardContext> {
     let _ = env_logger::builder()
         .parse_env(env_logger::Env::default().default_filter_or("warn,lezard=info"))
         .try_init();
-    start_sequencer(2000).await
+    start_sequencer().await
 }
-
-/// Number of pre-generated accounts in `LezardContext::accounts`.
-const NUM_ACCOUNTS: usize = 10;
 
 /// Bundles a running sequencer with its client and temp storage.
 pub struct LezardContext {
     pub handle: SequencerHandle,
     pub client: SequencerClient,
-    pub block_timeout_ms: u64,
     /// 10 pre-generated account IDs, ready to use in tests.
     /// `accounts[0]` = `[1; 32]`, `accounts[1]` = `[2; 32]`, ..., `accounts[9]` = `[10; 32]`.
     pub accounts: [AccountId; NUM_ACCOUNTS],
@@ -47,7 +52,7 @@ pub struct LezardContext {
 
 /// Starts a standalone sequencer (no Docker/Bedrock needed) with an empty
 /// genesis state. Returns a `LezardContext` containing the handle and client.
-pub async fn start_sequencer(block_timeout_ms: u64) -> Result<LezardContext> {
+pub async fn start_sequencer() -> Result<LezardContext> {
     let tmp_dir = tempfile::tempdir().context("Failed to create temp dir")?;
 
     let config = SequencerConfig {
@@ -57,7 +62,7 @@ pub async fn start_sequencer(block_timeout_ms: u64) -> Result<LezardContext> {
         is_genesis_random: true,
         max_num_tx_in_block: 20,
         mempool_max_size: 10_000,
-        block_create_timeout_millis: block_timeout_ms,
+        block_create_timeout_millis: BLOCK_TIME_MS,
         retry_pending_blocks_timeout_millis: 240_000,
         port: 0,
         initial_accounts: vec![],
@@ -88,7 +93,6 @@ pub async fn start_sequencer(block_timeout_ms: u64) -> Result<LezardContext> {
     Ok(LezardContext {
         handle,
         client,
-        block_timeout_ms,
         accounts,
         _tmp_dir: tmp_dir,
     })
@@ -157,9 +161,38 @@ pub async fn get_account(client: &SequencerClient, account_id: AccountId) -> Res
     Ok(resp.account)
 }
 
-/// Sleeps long enough for at least one block to be produced.
-pub async fn wait_for_block(block_timeout_ms: u64) {
-    let wait = Duration::from_millis(block_timeout_ms + 1000);
-    info!("Waiting {wait:?} for next block...");
-    tokio::time::sleep(wait).await;
+/// Waits until a new block is produced after the current one.
+/// Polls `get_last_block()` every BLOCK_TIME_MS, with a timeout based on NEXT_BLOCK_TIMEOUT_MS.
+pub async fn wait_for_block(client: &SequencerClient) -> Result<u64> {
+    let initial = client
+        .get_last_block()
+        .await
+        .context("Failed to get last block")?
+        .last_block;
+
+    let timeout = Duration::from_millis(NEXT_BLOCK_TIMEOUT_MS);
+    let start = tokio::time::Instant::now();
+
+    loop {
+        tokio::time::sleep(Duration::from_millis(BLOCK_TIME_MS)).await;
+
+        let current = client
+            .get_last_block()
+            .await
+            .context("Failed to get last block")?
+            .last_block;
+
+        if current > initial {
+            info!("Block {current} produced");
+            return Ok(current);
+        } else {
+            info!("Waiting for the next block...")
+        }
+
+        if start.elapsed() > timeout {
+            anyhow::bail!(
+                "Timed out waiting for new block after {timeout:?} (stuck at block {initial})"
+            );
+        }
+    }
 }

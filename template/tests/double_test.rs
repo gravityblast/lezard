@@ -21,11 +21,11 @@ async fn double_program() -> Result<()> {
     // Deploy the double program
     let elf_path = PathBuf::from("target/riscv32im-risc0-zkvm-elf/docker/double.bin");
     let program_id = deploy_program(&ctx.client, &elf_path).await?;
-    wait_for_block(ctx.block_timeout_ms).await;
+    wait_for_block(&ctx.client).await?;
 
     // First call: empty -> 1
     send_unsigned_tx(&ctx.client, program_id, vec![account_id], ()).await?;
-    wait_for_block(ctx.block_timeout_ms).await;
+    wait_for_block(&ctx.client).await?;
 
     let account = get_account(&ctx.client, account_id).await?;
     assert_eq!(account.program_owner, program_id);
@@ -33,14 +33,14 @@ async fn double_program() -> Result<()> {
 
     // Second call: 1 -> 2
     send_unsigned_tx(&ctx.client, program_id, vec![account_id], ()).await?;
-    wait_for_block(ctx.block_timeout_ms).await;
+    wait_for_block(&ctx.client).await?;
 
     let account = get_account(&ctx.client, account_id).await?;
     assert_eq!(read_u64(account.data.as_ref()), 2);
 
     // Third call: 2 -> 4
     send_unsigned_tx(&ctx.client, program_id, vec![account_id], ()).await?;
-    wait_for_block(ctx.block_timeout_ms).await;
+    wait_for_block(&ctx.client).await?;
 
     let account = get_account(&ctx.client, account_id).await?;
     assert_eq!(read_u64(account.data.as_ref()), 4);

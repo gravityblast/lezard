@@ -1,4 +1,4 @@
-.PHONY: build test help
+.PHONY: build test test-debug help
 
 help:
 	@echo "Available targets:"
@@ -15,3 +15,6 @@ build:
 
 test:
 	RISC0_DEV_MODE=1 RUST_LOG="warn,lezard=info" cargo test --release
+
+test-debug:
+	RISC0_DEV_MODE=1 RUST_LOG="info" cargo test --release
